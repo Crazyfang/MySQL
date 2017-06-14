@@ -20,6 +20,7 @@ class ReadDataToExcel(object):
             self.__database_name = database
             self.db = None
             self.cursor = None
+            self.count = 0
             self.district = []
             self.information = [u'股份经济合作社名称',
                                 u'股东姓名',
@@ -36,6 +37,7 @@ class ReadDataToExcel(object):
 
             if not self.__host and self.__data_name and self.__data_password:
                 raise ValueError
+            self.connect_mysql()
         except ValueError:
             print("数据库参数输入错误，请核查")
 
@@ -61,20 +63,24 @@ class ReadDataToExcel(object):
             except Exception:
                 print("错误：没有获取到区号数据")
 
-    def get_district_data_self(self):
-        for index, area_code in enumerate(self.district):
-            if index <= 2:
-                print('区号{}开始获取数据'.format(area_code[0]))
-                self.get_district_data(area_code[0])
-            else:
-                pass
+    def get_district_data_self(self, district=None):
+        if not district:
+            for index, area_code in enumerate(self.district):
+                if index <= 2:
+                    print('区号{}开始获取数据'.format(area_code[0]))
+                    self.get_district_data(area_code[0])
+                else:
+                    pass
+        else:
+            print('区号{}开始获取数据'.format(district))
+            self.get_district_data(district)
 
     def get_district_data(self, district):
         sql = 'SELECT * FROM stockmemberinfo WHERE stockmemberinfo.District={}'.format(district)
         if self.cursor:
             try:
                 self.cursor.execute(sql)
-            except Exception as e:
+            except Exception:
                 print("错误：通过区号获取数据失败")
             self.write_to_excel(self.cursor.fetchall())
 
@@ -91,9 +97,45 @@ class ReadDataToExcel(object):
                         table.write(index_first + 1, index_second - 1, data_item)
                     else:
                         pass
+                self.count += 1
             print(file_path + u'写入完成')
         except Exception as e:
             print(e)
+
+    def dispose_operation(self, district=None):
+        if district:
+            self.get_district_data_self(district)
+        else:
+            self.get_district()
+            self.get_district_data_self()
+
+    def return_total_number(self, district=None):
+        count = 0
+        if not district:
+            self.get_district()
+            for index, area_code in enumerate(self.district):
+                if index <= 2:
+                    sql = 'SELECT count(*) FROM stockmemberinfo WHERE stockmemberinfo.District={}'.format(area_code[0])
+                    if self.cursor:
+                        try:
+                            self.cursor.execute(sql)
+                            count += self.cursor.fetchall()[0][0]
+                        except Exception:
+                            print("错误：通过区号获取数据失败")
+                else:
+                    pass
+        else:
+            sql = 'SELECT count(*) FROM stockmemberinfo WHERE stockmemberinfo.District={}'.format(district)
+            if self.cursor:
+                try:
+                    self.cursor.execute(sql)
+                    count += self.cursor.fetchall()[0][0]
+                except Exception:
+                    print("错误：通过区号获取数据失败")
+        return count
+
+    def return_total_count(self):
+        return self.count
 
     def close_connection(self):
         self.db.close()
@@ -101,9 +143,10 @@ class ReadDataToExcel(object):
 
 if __name__ == '__main__':
     example = ReadDataToExcel('localhost', 'root', 'fighting', 'stock')
-    example.connect_mysql()
+    # example.connect_mysql()
     # example.write_to_excel()
-    example.get_district()
-    example.get_district_data_self()
+    # example.get_district()
+    # example.get_district_data_self()
     # example.get_district_data('0226160172')
+    print example.return_total_number('0226160172')
     example.close_connection()
