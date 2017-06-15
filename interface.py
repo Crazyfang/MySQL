@@ -2,6 +2,7 @@
 
 # TODO 界面继续完善
 # TODO 与实际功能结合
+# TODO 滚动框实时显示处理数据
 
 from Tkinter import *
 import tkFileDialog
@@ -96,9 +97,12 @@ class InterfaceExportData(object):
                 print(e)
 
     def process_bar_handle(self):
-        number_branches = self.example.return_total_number('0226160192')
+        if self.entry_directory_store.get():
+            self.example.set_file_directory(self.entry_directory_store.get())
+
+        number_branches = self.example.return_total_number(self.entry_district.get())
         self.process_bar.config(maximum=number_branches)
-        thread = threading.Thread(target=self.example.dispose_operation, args=('0226160192',))
+        thread = threading.Thread(target=self.example.dispose_operation, args=(self.entry_district.get(),))
         thread.start()
         while 1:
             self.maximum = self.example.return_total_count()
@@ -106,7 +110,6 @@ class InterfaceExportData(object):
             self.process_bar.update()
 
             if self.maximum == number_branches:
-                self.example.close_connection()
                 showinfo(title='通知', message='任务完成')
                 break
 
